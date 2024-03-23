@@ -26,7 +26,7 @@ void SeelevelComponent::dump_config() {
 
 float SeelevelComponent::read_tank(unsigned tank, unsigned segments) {
   if (!this->rx_pin_->digital_read()) {
-    ESP_LOGW(TAG, "The sensor is disconnected or is malfunctioning");
+    ESP_LOGW(TAG, "The sensor interface is malfunctioning: RX is low while TX is low");
     return NAN;
   }
 
@@ -65,9 +65,9 @@ float SeelevelComponent::read_tank_with_tx_active_(unsigned tank, unsigned segme
         end = micros();
         if (end - start > timeout) {
           if (i == 0 && j == 0) {
-            ESP_LOGD(TAG, "No response from tank %d after %d microseconds", tank, end - start);
+            ESP_LOGW(TAG, "No response from tank %d after %d microseconds", tank, end - start);
           } else {
-            ESP_LOGD(TAG, "Timeout while reading data from tank %d after %d microseconds", tank, end - start);
+            ESP_LOGW(TAG, "Timeout while reading data from tank %d after %d microseconds", tank, end - start);
           }
           return NAN;
         }
@@ -77,7 +77,7 @@ float SeelevelComponent::read_tank_with_tx_active_(unsigned tank, unsigned segme
       while (this->rx_pin_->digital_read()) {
         end = micros();
         if (end - start > timeout) {
-          ESP_LOGD(TAG, "Timeout while reading data from tank %d after %d microseconds", tank, end - start);
+          ESP_LOGW(TAG, "Timeout while reading data from tank %d after %d microseconds", tank, end - start);
           return NAN;
         }
       }
@@ -87,7 +87,7 @@ float SeelevelComponent::read_tank_with_tx_active_(unsigned tank, unsigned segme
     packet[i] = byte;
   }
 
-  ESP_LOGV(TAG, "Tank %d packet: %02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x", tank,
+  ESP_LOGV(TAG, "Tank %d sensor packet: %02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x", tank,
       packet[0], packet[1], packet[2], packet[3], packet[4], packet[5],
       packet[6], packet[7], packet[8], packet[9], packet[10], packet[11]);
 
@@ -107,7 +107,7 @@ float SeelevelComponent::read_tank_with_tx_active_(unsigned tank, unsigned segme
     actual_sum += packet[i + 2];
   }
   if (check_sum != actual_sum) {
-    ESP_LOGD(TAG, "Checksum mismatch while reading data from tank %d, expected %04x, actual %04x, difference %04x",
+    ESP_LOGW(TAG, "Checksum mismatch while reading data from tank %d, expected %04x, actual %04x, difference %04x",
         tank, check_sum, actual_sum, (actual_sum - check_sum) & 0xffff);
     return NAN;
   }
@@ -130,6 +130,9 @@ float SeelevelComponent::read_tank_with_tx_active_(unsigned tank, unsigned segme
   constexpr float scale = 0.92f;
 
   const uint8_t* data = packet + 2;
+  ESP_LOGD(TAG, "Tank %d sensor data: %d,%d,%d,%d,%d,%d,%d,%d,%d,%d", tank,
+      data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]);
+
   float level = 0.f;
   unsigned prior = baseline;
   for (unsigned i = 0; i < segments; i++) {
