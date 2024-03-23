@@ -51,12 +51,12 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_TANK, default=1): cv.All(int, cv.Range(min=1, max=4)),
             cv.Optional(CONF_SEGMENTS, default=9): cv.All(int, cv.Range(min=1, max=10)),
             cv.Optional(CONF_LEVEL): sensor.sensor_schema(
-                accuracy_decimals=0,
+                accuracy_decimals=2,
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
             cv.Optional(CONF_VOLUME): sensor.sensor_schema(
                 unit_of_measurement="L",
-                accuracy_decimals=0,
+                accuracy_decimals=1,
                 device_class=DEVICE_CLASS_VOLUME_STORAGE,
                 state_class=STATE_CLASS_MEASUREMENT,
             ).extend({
