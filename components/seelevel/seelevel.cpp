@@ -139,7 +139,13 @@ float SeelevelComponent::read_tank_with_tx_active_(unsigned tank, unsigned segme
     unsigned value = data[segments - i - 1];
     if (value < noise_threshold) break;
     float contribution = value / (prior * scale);
-    level += std::min(contribution, i == segments - 1 ? 1.f / scale : 1.f);
+    if (contribution < 1.f) {
+      level += contribution;
+    } else if (i == segments - 1) {
+      level = i + std::min(contribution, 1.f / scale);
+    } else {
+      level = i;
+    }
     prior = value;
   }
   return level;
