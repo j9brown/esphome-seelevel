@@ -3,6 +3,9 @@
 #include "esphome/core/component.h"
 #include "esphome/core/gpio.h"
 
+#include <array>
+#include <cstdint>
+
 namespace esphome {
 namespace seelevel {
 
@@ -15,10 +18,11 @@ class SeelevelComponent : public Component {
   void setup() override;
   void dump_config() override;
 
-  float read_tank(unsigned tank, unsigned segments);
+  using SegmentData = std::array<uint8_t, 10>;
+  bool read_tank(unsigned tank, SegmentData* out_data);
 
  protected:
-  float read_tank_with_tx_active_(unsigned tank, unsigned segments);
+  bool read_tank_with_tx_active_(unsigned tank, SegmentData* out_data);
 
   GPIOPin* rx_pin_{nullptr};
   GPIOPin* tx_pin_{nullptr};

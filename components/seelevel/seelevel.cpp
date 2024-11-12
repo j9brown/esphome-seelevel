@@ -3,6 +3,7 @@
 #include "esphome/core/helpers.h"
 #include "seelevel.h"
 
+#include <algorithm>
 #include <utility>
 
 namespace esphome {
@@ -24,25 +25,25 @@ void SeelevelComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "  TX Pin: %s", this->tx_pin_->dump_summary().c_str());
 }
 
-float SeelevelComponent::read_tank(unsigned tank, unsigned segments) {
+bool SeelevelComponent::read_tank(unsigned tank, SegmentData* out_data) {
   if (!this->rx_pin_->digital_read()) {
     ESP_LOGW(TAG, "The sensor interface is malfunctioning: RX is low while TX is low");
-    return NAN;
+    return false;
   }
 
   this->tx_pin_->digital_write(true);
   delay(3); // charge the sensor, exact timing not important
 
-  float level = this->read_tank_with_tx_active_(tank, segments);
+  bool result = this->read_tank_with_tx_active_(tank, out_data);
 
   this->tx_pin_->digital_write(false);
-  return level;
+  return result;
 }
 
-float SeelevelComponent::read_tank_with_tx_active_(unsigned tank, unsigned segments) {
+bool SeelevelComponent::read_tank_with_tx_active_(unsigned tank, SegmentData* out_data) {
   if (this->rx_pin_->digital_read()) {
     ESP_LOGW(TAG, "The sensor wiring short-circuits to ground");
-    return NAN;
+    return false;
   }
 
   // Send the sensor address.
@@ -69,7 +70,7 @@ float SeelevelComponent::read_tank_with_tx_active_(unsigned tank, unsigned segme
           } else {
             ESP_LOGW(TAG, "Timeout while reading data from tank %d after %d microseconds", tank, end - start);
           }
-          return NAN;
+          return false;
         }
       }
       start = end;
@@ -78,7 +79,7 @@ float SeelevelComponent::read_tank_with_tx_active_(unsigned tank, unsigned segme
         end = micros();
         if (end - start > timeout) {
           ESP_LOGW(TAG, "Timeout while reading data from tank %d after %d microseconds", tank, end - start);
-          return NAN;
+          return false;
         }
       }
       byte <<= 1;
@@ -109,46 +110,14 @@ float SeelevelComponent::read_tank_with_tx_active_(unsigned tank, unsigned segme
   if (check_sum != actual_sum) {
     ESP_LOGW(TAG, "Checksum mismatch while reading data from tank %d, expected %04x, actual %04x, difference %04x",
         tank, check_sum, actual_sum, (actual_sum - check_sum) & 0xffff);
-    return NAN;
+    return false;
   }
-
-  // Calculate the level assuming that the zeroeth segment is at the top of the tank.
-  // The range of readings varies depending on how the sensor has been installed and is
-  // sensitive to nearby electric fields. Each segment on the sensor is influenced by
-  // nearby liquid some distance away from the capacitive plate so they cannot be
-  // interpreted in a simple binary manner.
-  //
-  // We make the following assumptions:
-  //
-  // - The calculation should yield a linear response to changes in volume without stair steps.
-  // - The sensor is sensitive to noise, low confidence values can be discarded.
-  // - The sensor response curve is unknown and may change over time.
-  // - We can use the ratio of adjacent sensor segments to normalize the response.
-  // - Shallower sensor segments tend to respond more weakly than deeper ones.
-  constexpr unsigned noise_threshold = 10;
-  constexpr unsigned baseline = 160;
-  constexpr float scale = 0.92f;
 
   const uint8_t* data = packet + 2;
   ESP_LOGD(TAG, "Tank %d sensor data: %d,%d,%d,%d,%d,%d,%d,%d,%d,%d", tank,
       data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]);
-
-  float level = 0.f;
-  unsigned prior = baseline;
-  for (unsigned i = 0; i < segments; i++) {
-    unsigned value = data[segments - i - 1];
-    if (value < noise_threshold) break;
-    float contribution = value / (prior * scale);
-    if (contribution < 1.f) {
-      level += contribution;
-    } else if (i == segments - 1) {
-      level = i + std::min(contribution, 1.f / scale);
-    } else {
-      level = i;
-    }
-    prior = value;
-  }
-  return level;
+  std::copy(data, data + 10, out_data->begin());
+  return true;
 }
 
 }  // namespace seelevel

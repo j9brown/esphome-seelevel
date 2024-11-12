@@ -1,9 +1,10 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import sensor
+from esphome.components import sensor, text_sensor
 from esphome.const import (
     CONF_ID,
     DEVICE_CLASS_VOLUME_STORAGE,
+    ENTITY_CATEGORY_DIAGNOSTIC,
     STATE_CLASS_MEASUREMENT,
 )
 from .. import SeelevelComponent, CONF_SEELEVEL_ID, seelevel_ns
@@ -12,6 +13,7 @@ DEPENDENCIES = ["seelevel"]
 
 CONF_TANK = "tank"
 CONF_SEGMENTS = "segments"
+CONF_SEGMENT_DATA = "segment_data"
 CONF_LEVEL = "level"
 CONF_VOLUME = "volume"
 CONF_MAP = "map"
@@ -68,7 +70,10 @@ CONFIG_SCHEMA = cv.All(
                     cv.Length(min=1),
                     check_monotonic,
                 ),
-            })
+            }),
+            cv.Optional(CONF_SEGMENT_DATA): text_sensor.text_sensor_schema(
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+            ),
         }
     ).extend(cv.polling_component_schema("60s"))
 )
@@ -90,3 +95,7 @@ async def to_code(config):
         cg.add(var.set_volume_sensor(sens))
         for item in config[CONF_VOLUME][CONF_MAP]:
             cg.add(var.append_volume_mapping(item[CONF_LEVEL], item[CONF_VOLUME]))
+
+    if CONF_SEGMENT_DATA in config:
+        sens = await text_sensor.new_text_sensor(config[CONF_SEGMENT_DATA])
+        cg.add(var.set_segment_data_text_sensor(sens))

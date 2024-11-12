@@ -56,4 +56,6 @@ sensor:
             window_size: 5
             send_every: 5
         - delta: 0.25
+    segment_data:
+      name: "Segment Data"
     update_interval: 0.5s

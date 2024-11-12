@@ -5,6 +5,8 @@ from esphome.const import CONF_ID, CONF_RX_PIN, CONF_TX_PIN
 
 CODEOWNERS = ["@j9brown"]
 
+AUTO_LOAD = ["text_sensor"]
+
 MULTI_CONF = True
 
 CONF_SEELEVEL_ID = "seelevel_id"

@@ -71,6 +71,11 @@ sensor:
           send_first_at: 3
           send_every: 3
         - delta: 0.25
+    # Optionally declares a diagnostic sensor containing the raw data retrieved from the tank.
+    # Reports a comma-delimited array of values that represents the analog signal level of each
+    # sensor segment starting from the lowest one. Each value ranges from 0 to 255.
+    segment_data:
+      name: "Segment Data"
     # Polling interal, default to 60s, use 'never' to disable automatic polling
     update_interval: 10s
 ```
