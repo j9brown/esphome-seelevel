@@ -55,36 +55,20 @@ float SeelevelSensor::estimate_level(const SeelevelComponent::SegmentData& data)
   // Calculate the level assuming that the zeroeth segment is at the top of the tank.
   // The range of readings varies depending on how the sensor has been installed and is
   // sensitive to nearby electric fields. Each segment on the sensor is influenced by
-  // nearby liquid some distance away from the capacitive plate so they cannot be
-  // interpreted in a simple binary manner.
+  // nearby liquid some distance away from the capacitive plate.
   //
-  // We make the following assumptions:
+  // - The sensor is sensitive to noise.
+  // - The sensor response curve is unknown and varies over time.
+  // - Some sensor segments appear to be more sensitive than others.
   //
-  // - The calculation should yield a linear response to changes in volume without stair steps.
-  // - The sensor is sensitive to noise, low confidence values can be discarded.
-  // - The sensor response curve is unknown and may change over time.
-  // - We can use the ratio of adjacent sensor segments to normalize the response.
-  // - Shallower sensor segments tend to respond more weakly than deeper ones.
-  constexpr unsigned noise_threshold = 10;
-  constexpr unsigned baseline = 160;
-  constexpr float scale = 0.92f;
-
-  float level = 0.f;
-  unsigned prior = baseline;
+  // TODO: With a better algorithm, it should be possible to interpolate the sensor
+  // readings to obtain a more linear response.
+  constexpr unsigned noise_floor = 180;
   for (unsigned i = 0; i < segments_; i++) {
     unsigned value = data[segments_ - i - 1];
-    if (value < noise_threshold) break;
-    float contribution = value / (prior * scale);
-    if (contribution < 1.f) {
-      level += contribution;
-    } else if (i == segments_ - 1) {
-      level = i + std::min(contribution, 1.f / scale);
-    } else {
-      level = i;
-    }
-    prior = value;
+    if (value < noise_floor) return i;
   }
-  return level;
+  return segments_;
 }
 
 float SeelevelSensor::estimate_volume(float level) const {
