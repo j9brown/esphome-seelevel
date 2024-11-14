@@ -3,6 +3,7 @@
 #include "esphome/core/log.h"
 
 #include <algorithm>
+#include <cmath>
 #include <sstream>
 
 namespace esphome {
@@ -60,15 +61,35 @@ float SeelevelSensor::estimate_level(const SeelevelComponent::SegmentData& data)
   // - The sensor is sensitive to noise.
   // - The sensor response curve is unknown and varies over time.
   // - Some sensor segments appear to be more sensitive than others.
-  //
-  // TODO: With a better algorithm, it should be possible to interpolate the sensor
-  // readings to obtain a more linear response.
-  constexpr unsigned noise_floor = 180;
+#if 0
+  constexpr unsigned noise_floor = 120;
   for (unsigned i = 0; i < segments_; i++) {
     unsigned value = data[segments_ - i - 1];
     if (value < noise_floor) return i;
   }
   return segments_;
+#else
+  unsigned high = 0;
+  unsigned low = 255;
+  for (unsigned i = 0; i < segments_; i++) {
+    unsigned x = data[segments_ - i - 1];
+    if (x > high) high = x;
+    if (x < low) low = x;
+  }
+  if (high < 120) high = 120;
+  if (high > 200) high = 200;
+  if (low > high / 4) low = high / 4;
+  if (low < 20) low = 20;
+  unsigned thresh = low + (high - low) * 3 / 4;
+  for (unsigned i = 0; i < segments_; i++) {
+    unsigned x = data[segments_ - i - 1];
+    if (x < low) return i;
+    if (x < thresh) {
+      return std::min(std::round(float(x - low) / (thresh - low) * 10.f) / 10.f, 1.f) + i;
+    }
+  }
+  return segments_;
+#endif
 }
 
 float SeelevelSensor::estimate_volume(float level) const {
