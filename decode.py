@@ -61,11 +61,11 @@ def decode_boundary(segments):
     return count
 
 
-DECODERS = [decode_stepwise, decode_boundary]
+DECODERS = [decode_boundary]
 
-COLLATION_INTERVAL = 15
 GRAPHIC_MAX_LEVEL = 9
 GRAPHIC_COLUMNS = 60
+DEDUPE_PLOT_DATA = False
 DEBUG_RAW_SAMPLES = False
 
 Sample = namedtuple('Sample', ('time', 'levels', 'raw'))
@@ -81,7 +81,7 @@ def plot(series, aliases):
     empty = b' ' * GRAPHIC_COLUMNS
     for sample in series:
         levels.update(sample.levels)
-        if levels == last_levels:
+        if DEDUPE_PLOT_DATA and levels == last_levels:
             continue
         last_levels = dict(levels)
 
@@ -152,20 +152,9 @@ def main() -> int:
                 levels[alias] = decoder(segments) if segments is not None else None
                 alias = alias.lower() # FIXME: This only works for up to two decoders
             series.append(Sample(time, levels, raw))
-
-    # Collate samples that are closely spaced in time
     series.sort(key=lambda sample: sample.time)
-    collated_series = []
-    last_sample = None
-    for sample in series:
-        if last_sample is not None and (sample.time - last_sample.time).total_seconds() < COLLATION_INTERVAL:
-            last_sample.levels.update(sample.levels)
-            last_sample.raw.update(sample.raw)
-        else:
-            last_sample = sample
-            collated_series.append(sample)
 
-    plot(collated_series, aliases)
+    plot(series, aliases)
     return 0
 
 if __name__ == '__main__':
