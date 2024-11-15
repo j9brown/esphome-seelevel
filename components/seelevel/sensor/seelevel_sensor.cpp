@@ -56,19 +56,22 @@ float SeelevelSensor::estimate_level(const SeelevelComponent::SegmentData& data)
   // Calculate the level assuming that the zeroeth segment is at the top of the tank.
   // The range of readings varies depending on how the sensor has been installed and is
   // sensitive to nearby electric fields. Each segment on the sensor is influenced by
-  // nearby liquid some distance away from the capacitive plate.
+  // its proximity to the air/water boundary.
   //
   // - The sensor is sensitive to noise.
   // - The sensor response curve is unknown and varies over time.
-  // - Some sensor segments appear to be more sensitive than others.
-#if 0
-  constexpr unsigned noise_floor = 120;
+  // - Some sensor segments appear to be more sensitive than others, particularly
+  //   near boundaries such as the top of the tank.
+  //
+  // Refer to decode.py for explanations and experiments.
+#if 0 // stepwise estimator
+  constexpr unsigned thresh = 120;
   for (unsigned i = 0; i < segments_; i++) {
-    unsigned value = data[segments_ - i - 1];
-    if (value < noise_floor) return i;
+    unsigned x = data[segments_ - i - 1];
+    if (x < thresh) return i;
   }
   return segments_;
-#else
+#elif 0 // proportional estimator
   unsigned high = 0;
   unsigned low = 255;
   for (unsigned i = 0; i < segments_; i++) {
@@ -80,13 +83,25 @@ float SeelevelSensor::estimate_level(const SeelevelComponent::SegmentData& data)
   if (high > 200) high = 200;
   if (low > high / 4) low = high / 4;
   if (low < 20) low = 20;
-  unsigned thresh = low + (high - low) * 3 / 4;
+  unsigned thresh = low + (high - low) * 6 / 10;
   for (unsigned i = 0; i < segments_; i++) {
     unsigned x = data[segments_ - i - 1];
     if (x < low) return i;
     if (x < thresh) {
       return std::min(std::round(float(x - low) / (thresh - low) * 10.f) / 10.f, 1.f) + i;
     }
+  }
+  return segments_;
+#else // boundary estimator
+  unsigned thresh = 120;
+  for (unsigned i = 0; i < segments_; i++) {
+    unsigned x = data[segments_ - i - 1];
+    if (x < thresh) {
+      unsigned low = thresh / 3;
+      if (x < low) return i;
+      return std::round(float(x - low) / float(thresh - low) * 10.f) / 10.f + i;
+    }
+    thresh = std::max(thresh, x * 9 / 10);
   }
   return segments_;
 #endif

@@ -38,14 +38,30 @@ def decode_proportional(segments):
     count = len(segments)
     high = min(max(max(segments), 120), 200)
     low = max(min(min(segments), high * 0.25), 20)
-    thresh = low + (high - low) * 0.75
+    thresh = low + (high - low) * 0.6
     for i in range(0, count):
         if segments[i] < thresh:
             return round(i + min(max(segments[i] - low, 0) / (thresh - low), 1), 1)
     return count
 
 
-DECODERS = [decode_stepwise, decode_proportional]
+# Determines the liquid level by searching for a drop-off in signal level across the
+# segments then allocating a proportion based on an assumed noise floor. This one
+# is based on the observation that signal level tends to increase monotonically
+# closer to the air/liquid boundary (so it is lower at the bottom of the tank).
+def decode_boundary(segments):
+    count = len(segments)
+    thresh = 120
+    for i in range(0, count):
+        x = segments[i]
+        if x < thresh:
+            low = thresh / 3
+            return round(i + max((x - low) / (thresh - low), 0), 1)
+        thresh = max(thresh, segments[i] * 0.9)
+    return count
+
+
+DECODERS = [decode_stepwise, decode_boundary]
 
 COLLATION_INTERVAL = 15
 GRAPHIC_MAX_LEVEL = 9
@@ -81,10 +97,15 @@ def plot(series, aliases):
                 graphic[-1] = ord('>')
             else:
                 graphic[pos + 1] = ord(alias)
-            labels += ' %c %0.1f' % (alias, level)
-        if DEBUG_RAW_SAMPLES:
-            print(sample.raw)
+            labels += ' %c %0.1f ' % (alias, level)
+        if levels.get('F') is not None and levels.get('G') is not None:
+            labels += ' F+G %0.1f ' % (levels['F'] + levels['G'])
+        if levels.get('f') is not None and levels.get('g') is not None:
+            labels += ' f+g %0.1f ' % (levels['f'] + levels['g'])
         print(f'{sample.time.astimezone().strftime('%d/%m/%y %H:%M:%S')} -{graphic.decode()}-{labels}')
+        if DEBUG_RAW_SAMPLES:
+            for alias in sorted(sample.raw.keys()):
+                print(f'  \u001b[2m{alias}: {sample.raw[alias]}\u001b[0m')
 
 
 def make_pretty_alias(entity):
