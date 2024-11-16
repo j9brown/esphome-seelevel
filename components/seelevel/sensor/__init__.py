@@ -17,6 +17,7 @@ CONF_SEGMENT_DATA = "segment_data"
 CONF_LEVEL = "level"
 CONF_VOLUME = "volume"
 CONF_MAP = "map"
+CONF_INVERT = "invert"
 
 SeelevelSensor = seelevel_ns.class_("SeelevelSensor", cg.PollingComponent)
 
@@ -70,6 +71,7 @@ CONFIG_SCHEMA = cv.All(
                     cv.Length(min=1),
                     check_monotonic,
                 ),
+                cv.Optional(CONF_INVERT, default=False): bool,
             }),
             cv.Optional(CONF_SEGMENT_DATA): text_sensor.text_sensor_schema(
                 entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
@@ -95,6 +97,7 @@ async def to_code(config):
         cg.add(var.set_volume_sensor(sens))
         for item in config[CONF_VOLUME][CONF_MAP]:
             cg.add(var.append_volume_mapping(item[CONF_LEVEL], item[CONF_VOLUME]))
+        cg.add(var.set_volume_invert(config[CONF_VOLUME][CONF_INVERT]))
 
     if CONF_SEGMENT_DATA in config:
         sens = await text_sensor.new_text_sensor(config[CONF_SEGMENT_DATA])

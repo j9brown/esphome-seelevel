@@ -41,21 +41,12 @@ sensor:
     segments: 9
     level:
       name: "Water Level"
-      filters:
-        - sliding_window_moving_average:
-            window_size: 5
-            send_every: 5
-        - delta: 0.1
     volume:
       name: "Water Volume"
       map:
         - { level: 4.0, volume: 25 L }
         - { level: 9.0, volume: 40 L }
-      filters:
-        - sliding_window_moving_average:
-            window_size: 5
-            send_every: 5
-        - delta: 0.25
+      invert: false
     segment_data:
       name: "Segment Data"
     update_interval: 0.5s

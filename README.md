@@ -48,12 +48,6 @@ sensor:
     # more than the number of segments. Accepts all Sensor parameters, including filters.
     level:
       name: "Water Level"
-      filters:
-        - sliding_window_moving_average:
-          window_size: 6
-          send_first_at: 3
-          send_every: 3
-        - delta: 0.1
     # Optionally declares a water volume sensor by linearly interpolating a mapping from
     # level to volume.  Accepts all Sensor parameters, including filters.
     volume:
@@ -65,12 +59,10 @@ sensor:
       map:
         - { level: 5.0, volume: 25 L }
         - { level: 9.0, volume: 40 L }
-      filters:
-        - sliding_window_moving_average:
-          window_size: 6
-          send_first_at: 3
-          send_every: 3
-        - delta: 0.25
+      # Optionally inverts the sense of the reported volume (default is false)
+      # If true, reports the remaining capacity of the tank
+      # If false, reports how much liquid it contains
+      invert: true
     # Optionally declares a diagnostic sensor containing the raw data retrieved from the tank.
     # Reports a comma-delimited array of values that represents the analog signal level of each
     # sensor segment starting from the lowest one. Each value ranges from 0 to 255.

@@ -21,6 +21,7 @@ void SeelevelSensor::dump_config() {
     for (const auto& mapping : this->volume_mappings_) {
       ESP_LOGCONFIG(TAG, "    level %f -> volume %f", mapping.first, mapping.second);
     }
+    ESP_LOGCONFIG(TAG, "    invert %s", this->volume_invert_ ? "true" : "false");
   }
   LOG_TEXT_SENSOR("  ", "Segment Data", this->segment_data_text_sensor_);
 }
@@ -120,7 +121,8 @@ float SeelevelSensor::estimate_volume(float level) const {
     if (level < high_level) break;
   }
   if (level >= high_level || low_level >= high_level) return high_volume;
-  return lerp((level - low_level) / (high_level - low_level), low_volume, high_volume);
+  float volume = lerp((level - low_level) / (high_level - low_level), low_volume, high_volume);
+  return this->volume_invert_ ? this->volume_mappings_.back().second - volume : volume;
 }
 
 }  // namespace seelevel

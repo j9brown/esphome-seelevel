@@ -24,6 +24,7 @@ class SeelevelSensor : public PollingComponent {
   void set_level_sensor(sensor::Sensor *sensor) { this->level_sensor_ = sensor; }
   void set_volume_sensor(sensor::Sensor *sensor) { this->volume_sensor_ = sensor; }
   void append_volume_mapping(float level, float volume) { this->volume_mappings_.push_back(std::make_pair(level, volume)); }
+  void set_volume_invert(bool invert) { this->volume_invert_ = invert; }
   void set_segment_data_text_sensor(text_sensor::TextSensor *text_sensor) { this->segment_data_text_sensor_ = text_sensor; }
 
  protected:
@@ -37,6 +38,7 @@ class SeelevelSensor : public PollingComponent {
   sensor::Sensor *volume_sensor_{nullptr};
   text_sensor::TextSensor *segment_data_text_sensor_{nullptr};
   std::vector<std::pair<float, float>> volume_mappings_{{0., 0.}};
+  bool volume_invert_{};
 };
 
 }  // namespace seelevel
