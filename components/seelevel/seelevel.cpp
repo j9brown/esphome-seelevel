@@ -114,8 +114,6 @@ bool SeelevelComponent::read_tank_with_tx_active_(unsigned tank, SegmentData* ou
   }
 
   const uint8_t* data = packet + 2;
-  ESP_LOGD(TAG, "Tank %d sensor data: %d,%d,%d,%d,%d,%d,%d,%d,%d,%d", tank,
-      data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]);
   std::copy(data, data + 10, out_data->begin());
   return true;
 }
