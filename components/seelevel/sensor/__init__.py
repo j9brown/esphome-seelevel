@@ -68,7 +68,7 @@ CONFIG_SCHEMA = cv.All(
                         cv.Required(CONF_LEVEL): cv.All(float, cv.Range(min=0, max=10)),
                         cv.Required(CONF_VOLUME): volume,
                     }),
-                    cv.Length(min=1),
+                    cv.Length(min=2),
                     check_monotonic,
                 ),
                 cv.Optional(CONF_INVERT, default=False): bool,

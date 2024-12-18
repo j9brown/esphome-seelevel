@@ -23,6 +23,11 @@ Connect `GND` to the power supply ground (can be a chassis ground) and to the mi
 ## Configuration
 
 ```yaml
+# Import the component
+external_components:
+  - source: github://j9brown/esphome-seelevel@main
+    components: [ seelevel ]
+
 # Declare the transceiver interface
 seelevel:
     # Transceiver component ID, optional unless there are multiple transceivers
@@ -53,10 +58,11 @@ sensor:
     volume:
       name: "Water Volume"
       # Maps from level to volume
-      # Requires at least one entry, can have more for tanks of non-uniform volume
+      # Requires at least two entries, can have more for tanks of non-uniform volume
       # Entries must be arranged in non-decreasing order in both level and in volume
       # Valid units of volume are: 'gal' (gallon) and 'L' (liter)
       map:
+        - { level: 1.0, volume: 0 L }
         - { level: 5.0, volume: 25 L }
         - { level: 9.0, volume: 40 L }
       # Optionally inverts the sense of the reported volume (default is false)

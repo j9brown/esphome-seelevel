@@ -44,7 +44,8 @@ sensor:
     volume:
       name: "Water Volume"
       map:
-        - { level: 4.0, volume: 25 L }
+        - { level: 1.0, volume: 0 L }
+        - { level: 5.0, volume: 25 L }
         - { level: 9.0, volume: 40 L }
       invert: false
     segment_data:

@@ -37,7 +37,7 @@ class SeelevelSensor : public PollingComponent {
   sensor::Sensor *level_sensor_{nullptr};
   sensor::Sensor *volume_sensor_{nullptr};
   text_sensor::TextSensor *segment_data_text_sensor_{nullptr};
-  std::vector<std::pair<float, float>> volume_mappings_{{0., 0.}};
+  std::vector<std::pair<float, float>> volume_mappings_{};
   bool volume_invert_{};
 };
 

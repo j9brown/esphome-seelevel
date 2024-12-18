@@ -109,20 +109,21 @@ float SeelevelSensor::estimate_level(const SeelevelComponent::SegmentData& data)
 }
 
 float SeelevelSensor::estimate_volume(float level) const {
-  if (std::isnan(level)) return NAN;
+  const auto& mappings = this->volume_mappings_;
+  if (std::isnan(level) || mappings.size() < 2) return NAN;
 
-  float low_level = 0;
-  float low_volume = 0;
-  float high_level = 0;
-  float high_volume = 0;
-  for (const auto& mapping : this->volume_mappings_) {
-    high_level = mapping.first;
-    high_volume = mapping.second;
-    if (level < high_level) break;
-  }
-  if (level >= high_level || low_level >= high_level) return high_volume;
-  float volume = lerp((level - low_level) / (high_level - low_level), low_volume, high_volume);
-  return this->volume_invert_ ? this->volume_mappings_.back().second - volume : volume;
+  float volume = [level, &mappings]() {
+    size_t i = 0;
+    for (;;) {
+      if (level < mappings[i].first) break;
+      if (++i == mappings.size()) return mappings.back().second;
+    }
+    if (i == 0) return mappings.front().second;
+    const auto& low = mappings[i - 1];
+    const auto& high = mappings[i];
+    return lerp((level - low.first) / (high.first - low.first), low.second, high.second);
+  }();
+  return this->volume_invert_ ? mappings.back().second - volume : volume;
 }
 
 }  // namespace seelevel
