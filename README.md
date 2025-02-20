@@ -1,5 +1,6 @@
 # esphome-seelevel
-ESPHome component for reading the Garnet SeeLeveL tank sensor
+
+An ESPHome component for reading the Garnet SeeLeveL tank sensor.
 
 ## Interface
 
@@ -59,8 +60,10 @@ sensor:
       name: "Water Volume"
       # Maps from level to volume
       # Requires at least two entries, can have more for tanks of non-uniform volume
-      # Entries must be arranged in non-decreasing order in both level and in volume
-      # Valid units of volume are: 'gal' (gallon) and 'L' (liter)
+      # Entries must be arranged in non-decreasing order in both level and in volume.
+      # Valid units of volume are: 'gal' (gallon) and 'L' (liter).
+      # Note: The sensor's native unit of measurement is the liter even when gallons are
+      #       used to define the mapping.
       map:
         - { level: 1.0, volume: 0 L }
         - { level: 5.0, volume: 25 L }
@@ -69,6 +72,9 @@ sensor:
       # If true, reports the remaining capacity of the tank
       # If false, reports how much liquid it contains
       invert: true
+      # Apply sensor filters to reduce noise.
+      filters:
+        - delta: 0.5
     # Optionally declares a diagnostic sensor containing the raw data retrieved from the tank.
     # Reports a comma-delimited array of values that represents the analog signal level of each
     # sensor segment starting from the lowest one. Each value ranges from 0 to 255.
