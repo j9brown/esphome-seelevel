@@ -26,6 +26,7 @@ class SeelevelComponent : public Component {
 
   GPIOPin* rx_pin_{nullptr};
   GPIOPin* tx_pin_{nullptr};
+  uint32_t last_read_time_{};
 };
 
 }  // namespace emc2101

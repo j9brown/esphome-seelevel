@@ -31,12 +31,20 @@ bool SeelevelComponent::read_tank(unsigned tank, SegmentData* out_data) {
     return false;
   }
 
+  // Need to wait a little between consecutive reads otherwise the sensor fails to respond.
+  constexpr uint32_t MIN_PAUSE_BETWEEN_READS = 20;
+  uint32_t pause_between_reads = millis() - this->last_read_time_;
+  if (pause_between_reads < MIN_PAUSE_BETWEEN_READS) {
+    delay(MIN_PAUSE_BETWEEN_READS - pause_between_reads);
+  }
+
   this->tx_pin_->digital_write(true);
   delay(3); // charge the sensor, exact timing not important
 
   bool result = this->read_tank_with_tx_active_(tank, out_data);
 
   this->tx_pin_->digital_write(false);
+  this->last_read_time_ = millis();
   return result;
 }
 
