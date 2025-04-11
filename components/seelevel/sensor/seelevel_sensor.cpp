@@ -42,6 +42,13 @@ void SeelevelSensor::update() {
       this->segment_data_text_sensor_->publish_state(segment_state.str());
     }
     level = estimate_level(segment_data);
+    this->failures_ = 0;
+  } else {
+    constexpr unsigned TOLERATED_FAILURES = 3;
+    if (this->failures_ < TOLERATED_FAILURES) {
+      this->failures_++;
+      return;
+    }
   }
 
   if (this->level_sensor_) {
