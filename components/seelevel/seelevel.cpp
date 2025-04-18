@@ -38,8 +38,15 @@ bool SeelevelComponent::read_tank(unsigned tank, SegmentData* out_data) {
     delay(MIN_PAUSE_BETWEEN_READS - pause_between_reads);
   }
 
+  // Charge the sensor
+  // Apparently this needs to be a fairly short interval
+  // - 2 ms: always get a response
+  // - 3 ms: usually get a response, sometimes don't, seems to depend on environmental conditions
+  // - 5 ms: sometimes get a response
+  // - 10 ms: no response
+  constexpr uint32_t CHARGE_TIME = 2;
   this->tx_pin_->digital_write(true);
-  delay(3); // charge the sensor, exact timing not important
+  delay(CHARGE_TIME);
 
   bool result = this->read_tank_with_tx_active_(tank, out_data);
 
