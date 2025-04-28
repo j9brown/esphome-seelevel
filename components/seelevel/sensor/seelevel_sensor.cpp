@@ -27,30 +27,52 @@ void SeelevelSensor::dump_config() {
 }
 
 void SeelevelSensor::update() {
+  this->read_pending_ = true;
+  this->read_tank();
+}
+
+void SeelevelSensor::loop() {
+  if (this->read_pending_) {
+    this->read_tank();
+  }
+}
+
+void SeelevelSensor::read_tank() {
   SeelevelComponent::SegmentData segment_data;
-  float level = NAN;
-  if (this->parent_->read_tank(this->tank_, &segment_data)) {
-    if (this->segment_data_text_sensor_) {
-      std::ostringstream segment_state;
-      for (unsigned i = 0; i < segments_; i++) {
-        unsigned value = segment_data[segments_ - i - 1];
-        if (i != 0) {
-          segment_state << ',';
-        }
-        segment_state << value;
-      }
-      this->segment_data_text_sensor_->publish_state(segment_state.str());
+  SeelevelComponent::ReadResult result = this->parent_->read_tank(this->tank_, &segment_data);
+  if (result == SeelevelComponent::ReadResult::RATE_LIMITED) {
+    return; // try again
+  }
+  if (result == SeelevelComponent::ReadResult::FAILED) {
+    constexpr unsigned RETRIES = 3;
+    if (this->failures_ < RETRIES) {
+      this->failures_ += 1;
+      return; // try again
     }
-    level = estimate_level(segment_data);
-    this->failures_ = 0;
-  } else {
-    constexpr unsigned TOLERATED_FAILURES = 3;
-    if (this->failures_ < TOLERATED_FAILURES) {
-      this->failures_++;
-      return;
-    }
+    this->read_pending_ = false;
+    this->publish_level(NAN);
+    return; // give up
   }
 
+  this->failures_ = 0;
+  this->read_pending_ = false;
+
+  if (this->segment_data_text_sensor_) {
+    std::ostringstream segment_state;
+    for (unsigned i = 0; i < segments_; i++) {
+      unsigned value = segment_data[segments_ - i - 1];
+      if (i != 0) {
+        segment_state << ',';
+      }
+      segment_state << value;
+    }
+    this->segment_data_text_sensor_->publish_state(segment_state.str());
+  }
+
+  this->publish_level(estimate_level(segment_data));
+}
+
+void SeelevelSensor::publish_level(float level) {
   if (this->level_sensor_) {
     this->level_sensor_->publish_state(level);
   }

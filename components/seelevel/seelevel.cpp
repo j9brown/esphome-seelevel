@@ -25,34 +25,35 @@ void SeelevelComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "  TX Pin: %s", this->tx_pin_->dump_summary().c_str());
 }
 
-bool SeelevelComponent::read_tank(unsigned tank, SegmentData* out_data) {
-  if (!this->rx_pin_->digital_read()) {
-    ESP_LOGW(TAG, "The sensor interface is malfunctioning: RX is low while TX is low");
-    return false;
+SeelevelComponent::ReadResult SeelevelComponent::read_tank(unsigned tank, SegmentData* out_data) {
+  // Need to wait between consecutive reads otherwise the sensor fails to respond.
+  constexpr uint32_t MIN_INVERVAL_BETWEEN_READS = 1000; // at least 800 ms
+  if (millis() - this->last_read_time_ < MIN_INVERVAL_BETWEEN_READS) {
+    return ReadResult::RATE_LIMITED;
   }
 
-  // Need to wait a little between consecutive reads otherwise the sensor fails to respond.
-  constexpr uint32_t MIN_PAUSE_BETWEEN_READS = 20;
-  uint32_t pause_between_reads = millis() - this->last_read_time_;
-  if (pause_between_reads < MIN_PAUSE_BETWEEN_READS) {
-    delay(MIN_PAUSE_BETWEEN_READS - pause_between_reads);
+  if (!this->rx_pin_->digital_read()) {
+    ESP_LOGW(TAG, "The sensor interface is malfunctioning: RX is low while TX is low");
+    this->last_read_time_ = millis();
+    return ReadResult::FAILED;
   }
 
   // Charge the sensor
   // Apparently this needs to be a fairly short interval
+  // - 1.5 ms: always get a response
   // - 2 ms: always get a response
   // - 3 ms: usually get a response, sometimes don't, seems to depend on environmental conditions
   // - 5 ms: sometimes get a response
   // - 10 ms: no response
-  constexpr uint32_t CHARGE_TIME = 2;
+  constexpr uint32_t CHARGE_TIME = 1500;
   this->tx_pin_->digital_write(true);
-  delay(CHARGE_TIME);
+  delayMicroseconds(CHARGE_TIME);
 
   bool result = this->read_tank_with_tx_active_(tank, out_data);
 
   this->tx_pin_->digital_write(false);
   this->last_read_time_ = millis();
-  return result;
+  return result ? ReadResult::OK : ReadResult::FAILED;
 }
 
 bool SeelevelComponent::read_tank_with_tx_active_(unsigned tank, SegmentData* out_data) {
@@ -70,7 +71,9 @@ bool SeelevelComponent::read_tank_with_tx_active_(unsigned tank, SegmentData* ou
   }
 
   // Wait for a response.
-  uint32_t timeout = 20000; // long timeout for first bit
+  constexpr uint32_t FIRST_BIT_TIMEOUT = 8500; // Typically 7500 us
+  constexpr uint32_t NEXT_BIT_TIMEOUT = 200;   // Typically 120 us ON / 50 us OFF
+  uint32_t timeout = FIRST_BIT_TIMEOUT;
   uint8_t packet[12];
   for (size_t i = 0; i < sizeof(packet); i++) {
     uint8_t byte = 0;
@@ -81,19 +84,19 @@ bool SeelevelComponent::read_tank_with_tx_active_(unsigned tank, SegmentData* ou
         end = micros();
         if (end - start > timeout) {
           if (i == 0 && j == 0) {
-            ESP_LOGW(TAG, "No response from tank %d after %d microseconds", tank, end - start);
+            ESP_LOGW(TAG, "No response from tank %d", tank);
           } else {
-            ESP_LOGW(TAG, "Timeout while reading data from tank %d after %d microseconds", tank, end - start);
+            ESP_LOGW(TAG, "Timeout while reading data from tank %d", tank);
           }
           return false;
         }
       }
       start = end;
-      timeout = 200; // shorter timeout for subsequent bits
+      timeout = NEXT_BIT_TIMEOUT;
       while (this->rx_pin_->digital_read()) {
         end = micros();
         if (end - start > timeout) {
-          ESP_LOGW(TAG, "Timeout while reading data from tank %d after %d microseconds", tank, end - start);
+          ESP_LOGW(TAG, "Timeout while reading data from tank %d", tank);
           return false;
         }
       }

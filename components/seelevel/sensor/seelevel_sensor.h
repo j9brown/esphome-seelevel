@@ -18,6 +18,7 @@ class SeelevelSensor : public PollingComponent {
   float get_setup_priority() const override;
   void dump_config() override;
   void update() override;
+  void loop() override;
 
   void set_tank(unsigned tank) { this->tank_ = tank; }
   void set_segments(unsigned segments) { this->segments_ = segments; }
@@ -28,6 +29,8 @@ class SeelevelSensor : public PollingComponent {
   void set_segment_data_text_sensor(text_sensor::TextSensor *text_sensor) { this->segment_data_text_sensor_ = text_sensor; }
 
  protected:
+  void read_tank();
+  void publish_level(float level);
   float estimate_level(const SeelevelComponent::SegmentData& data) const;
   float estimate_volume(float level) const;
 
@@ -40,6 +43,7 @@ class SeelevelSensor : public PollingComponent {
   std::vector<std::pair<float, float>> volume_mappings_{};
   bool volume_invert_{};
   unsigned failures_{};
+  bool read_pending_{};
 };
 
 }  // namespace seelevel
