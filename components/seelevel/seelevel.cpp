@@ -71,8 +71,11 @@ bool SeelevelComponent::read_tank_with_tx_active_(unsigned tank, SegmentData* ou
   }
 
   // Wait for a response.
-  constexpr uint32_t FIRST_BIT_TIMEOUT = 8500; // Typically 7500 us
-  constexpr uint32_t NEXT_BIT_TIMEOUT = 200;   // Typically 120 us ON / 50 us OFF
+  // The time to first bit varies between installations for unknown reasons.
+  // In some installations, 8500 us is sufficient whereas others need as much as 14000 us
+  // to respond reliably. Refer to issue #2 for details.
+  constexpr uint32_t FIRST_BIT_TIMEOUT = 14000; // Typical range from 7500 us to 13000 us
+  constexpr uint32_t NEXT_BIT_TIMEOUT = 200;    // Typically 120 us ON / 50 us OFF
   uint32_t timeout = FIRST_BIT_TIMEOUT;
   uint8_t packet[12];
   for (size_t i = 0; i < sizeof(packet); i++) {
