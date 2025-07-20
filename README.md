@@ -116,3 +116,13 @@ And that's it!
 ## Limitations
 
 The implementation does not currently handle multiple sensor aggregation for deep tanks that need more segments than a single sensor has.
+
+## Acknowledgements
+
+This project was inspired by a discussion in the Raspberry Pi forum entitled [Read signal of an RV Tank Sensor](https://forums.raspberrypi.com/viewtopic.php?t=119614) from September 2015. We'd like to thank the folks who reverse-engineered the protocol and published their results.
+
+## Notice
+
+The esphome-seelevel software, documentation, design, and all copyright protected artifacts are released under the terms of the [MIT license](LICENSE).
+
+The esphome-seelevel hardware is released under the terms of the [CERN-OHL-W license](seelevel-interface/LICENSE).
