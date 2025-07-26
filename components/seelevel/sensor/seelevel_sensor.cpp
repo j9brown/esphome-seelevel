@@ -150,7 +150,7 @@ float SeelevelSensor::estimate_volume(float level) const {
     if (i == 0) return mappings.front().second;
     const auto& low = mappings[i - 1];
     const auto& high = mappings[i];
-    return lerp((level - low.first) / (high.first - low.first), low.second, high.second);
+    return std::lerp(low.second, high.second, (level - low.first) / (high.first - low.first));
   }();
   return this->volume_invert_ ? mappings.back().second - volume : volume;
 }
