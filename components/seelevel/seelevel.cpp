@@ -21,8 +21,8 @@ void SeelevelComponent::setup() {
 
 void SeelevelComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "Seelevel component:");
-  ESP_LOGCONFIG(TAG, "  RX Pin: %s", this->rx_pin_->dump_summary().c_str());
-  ESP_LOGCONFIG(TAG, "  TX Pin: %s", this->tx_pin_->dump_summary().c_str());
+  LOG_PIN("  RX Pin: ", this->rx_pin_);
+  LOG_PIN("  TX Pin: ", this->tx_pin_);
 }
 
 SeelevelComponent::ReadResult SeelevelComponent::read_tank(unsigned tank, SegmentData* out_data) {
